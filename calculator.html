@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProCalc - Professional Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e1b4b, #0f172a, #020617);
+      min-height: 100vh;
+    }
+
+    .glass-calculator {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                  0 0 40px rgba(79, 70, 229, 0.15);
+    }
+
+    .glass-display {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Custom smooth button press effect */
+    .calc-btn {
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .calc-btn:active {
+      transform: scale(0.93);
+    }
+
+    /* Custom Scrollbar for history panel */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+
+  <!-- Background Glow Elements -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md relative z-10">
+    
+    <!-- App Header / Controls -->
+    <div class="flex justify-between items-center mb-4 px-2">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-sm">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <span class="font-bold tracking-wider text-slate-200 text-sm">BASIC CALCULATOR</span>
+      </div>
+      <button onclick="toggleHistory()" id="history-toggle-btn" class="text-xs bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+        <i class="fa-solid fa-clock-rotate-left"></i> History
+      </button>
+    </div>
+
+    <!-- Calculator Box -->
+    <div class="glass-calculator rounded-3xl p-6 relative overflow-hidden">
+      
+      <!-- Main Calculator View -->
+      <div id="calculator-main-view" class="transition-all duration-300">
+        
+        <!-- Screen Display -->
+        <div class="glass-display rounded-2xl p-4 mb-6 text-right flex flex-col justify-end min-h-[105px] shadow-inner relative overflow-hidden">
+          <div id="previous-operation" class="text-slate-400 text-xs md:text-sm font-medium tracking-wide h-6 overflow-x-auto whitespace-nowrap flex items-center justify-end"></div>
+          <div id="current-display" class="text-white text-3xl md:text-4xl font-bold tracking-tight overflow-x-auto whitespace-nowrap flex items-center justify-end mt-1">0</div>
+        </div>
+
+        <!-- Keypad Grid -->
+        <div class="grid grid-cols-4 gap-3">
+          <!-- Row 1 -->
+          <button onclick="clearAll()" class="calc-btn bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-semibold py-3.5 rounded-2xl text-sm md:text-base">AC</button>
+          <button onclick="deleteDigit()" class="calc-btn bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 text-slate-300 font-semibold py-3.5 rounded-2xl text-sm md:text-base"><i class="fa-solid fa-delete-left"></i></button>
+          <button onclick="appendPercentage()" class="calc-btn bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 text-slate-300 font-semibold py-3.5 rounded-2xl text-sm md:text-base">%</button>
+          <button onclick="appendOperator('/')" class="calc-btn operator-btn bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 font-bold py-3.5 rounded-2xl text-lg md:text-xl">÷</button>
+
+          <!-- Row 2 -->
+          <button onclick="appendNumber('7')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">7</button>
+          <button onclick="appendNumber('8')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">8</button>
+          <button onclick="appendNumber('9')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">9</button>
+          <button onclick="appendOperator('*')" class="calc-btn operator-btn bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 font-bold py-3.5 rounded-2xl text-lg md:text-xl">×</button>
+
+          <!-- Row 3 -->
+          <button onclick="appendNumber('4')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">4</button>
+          <button onclick="appendNumber('5')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">5</button>
+          <button onclick="appendNumber('6')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">6</button>
+          <button onclick="appendOperator('-')" class="calc-btn operator-btn bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 font-bold py-3.5 rounded-2xl text-lg md:text-xl">−</button>
+
+          <!-- Row 4 -->
+          <button onclick="appendNumber('1')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">1</button>
+          <button onclick="appendNumber('2')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">2</button>
+          <button onclick="appendNumber('3')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">3</button>
+          <button onclick="appendOperator('+')" class="calc-btn operator-btn bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 font-bold py-3.5 rounded-2xl text-lg md:text-xl">+</button>
+
+          <!-- Row 5 -->
+          <button onclick="toggleSign()" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-300 font-semibold py-3.5 rounded-2xl text-sm md:text-base">±</button>
+          <button onclick="appendNumber('0')" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">0</button>
+          <button onclick="appendDecimal()" class="calc-btn bg-slate-800/40 hover:bg-slate-800 border border-slate-700/40 text-slate-100 font-semibold py-3.5 rounded-2xl text-base md:text-lg">.</button>
+          <button onclick="compute()" class="calc-btn bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-indigo-500/50 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-indigo-600/30 text-lg md:text-xl">=</button>
+        </div>
+
+      </div>
+
+      <!-- History Panel View (Hidden by Default) -->
+      <div id="calculator-history-view" class="hidden transition-all duration-300 flex flex-col h-[340px]">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700/50">
+          <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Calculation History</span>
+          <button onclick="clearHistory()" class="text-xs text-rose-400 hover:text-rose-300 transition">Clear All</button>
+        </div>
+        
+        <div id="history-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+          <!-- History items injected dynamically -->
+          <div class="text-center text-slate-500 text-xs py-20 italic" id="empty-history-msg">No history recorded yet</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let currentInput = '0';
+    let previousInput = '';
+    let operation = null;
+    let resetScreen = false;
+    let history = [];
+    let isHistoryShown = false;
+
+    const currentDisplay = document.getElementById('current-display');
+    const previousOperation = document.getElementById('previous-operation');
+    const historyList = document.getElementById('history-list');
+    const emptyHistoryMsg = document.getElementById('empty-history-msg');
+    const historyToggleBtn = document.getElementById('history-toggle-btn');
+
+    function updateDisplay() {
+      currentDisplay.innerText = currentInput;
+      previousOperation.innerText = previousInput;
+    }
+
+    function appendNumber(number) {
+      if (currentInput === '0' || resetScreen) {
+        currentInput = number;
+        resetScreen = false;
+      } else {
+        if (currentInput.length < 15) { 
+          currentInput += number;
+        }
+      }
+      updateDisplay();
+    }
+
+    
+    function appendDecimal() {
+      if (resetScreen) {
+        currentInput = '0.';
+        resetScreen = false;
+        updateDisplay();
+        return;
+      }
+      if (!currentInput.includes('.')) {
+        currentInput += '.';
+        updateDisplay();
+      }
+    }
+
+    
+    function appendOperator(op) {
+      if (operation !== null && !resetScreen) {
+        compute();
+      }
+      previousInput = `${currentInput} ${getOperatorSymbol(op)}`;
+      operation = op;
+      resetScreen = true;
+      updateDisplay();
+    }
+
+    function getOperatorSymbol(op) {
+      switch(op) {
+        case '+': return '+';
+        case '-': return '−';
+        case '*': return '×';
+        case '/': return '÷';
+        default: return op;
+      }
+    }
+
+    function appendPercentage() {
+      const val = parseFloat(currentInput);
+      if (isNaN(val)) return;
+      currentInput = (val / 100).toString();
+      updateDisplay();
+    }
+
+    function toggleSign() {
+      if (currentInput === '0') return;
+      if (currentInput.startsWith('-')) {
+        currentInput = currentInput.substring(1);
+      } else {
+        currentInput = '-' + currentInput;
+      }
+      updateDisplay();
+    }
+
+    function deleteDigit() {
+      if (resetScreen || currentInput.length === 1 || (currentInput.length === 2 && currentInput.startsWith('-'))) {
+        currentInput = '0';
+      } else {
+        currentInput = currentInput.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    function clearAll() {
+      currentInput = '0';
+      previousInput = '';
+      operation = null;
+      resetScreen = false;
+      updateDisplay();
+    }
+
+    function compute() {
+      if (operation === null || resetScreen) return;
+      
+      let computation;
+      const prev = parseFloat(previousInput);
+      const current = parseFloat(currentInput);
+      
+      if (isNaN(prev) || isNaN(current)) return;
+
+      const opSymbol = getOperatorSymbol(operation);
+      const fullExpression = `${previousInput} ${currentInput}`;
+
+      switch (operation) {
+        case '+':
+          computation = prev + current;
+          break;
+        case '-':
+          computation = prev - current;
+          break;
+        case '*':
+          computation = prev * current;
+          break;
+        case '/':
+          if (current === 0) {
+            showError("Cannot divide by zero");
+            return;
+          }
+          computation = prev / current;
+          break;
+        default:
+          return;
+      }
+
+      computation = Math.round(computation * 1e12) / 1e12;
+
+      const resultString = computation.toString();
+
+      addToHistory(`${fullExpression} =`, resultString);
+
+      previousInput = `${fullExpression} =`;
+      currentInput = resultString;
+      operation = null;
+      resetScreen = true;
+      updateDisplay();
+    }
+
+    function showError(msg) {
+      currentInput = "Error";
+      previousInput = msg;
+      resetScreen = true;
+      updateDisplay();
+      setTimeout(() => {
+        clearAll();
+      }, 1500);
+    }
+
+    function addToHistory(expression, result) {
+      history.unshift({ expression, result });
+      if (history.length > 20) history.pop(); // Keep last 20
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (history.length === 0) {
+        historyList.innerHTML = `<div class="text-center text-slate-500 text-xs py-20 italic" id="empty-history-msg">No history recorded yet</div>`;
+        return;
+      }
+      
+      let html = '';
+      history.forEach((item, index) => {
+        html += `
+          <div onclick="useHistoryItem('${item.result}')" class="bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/40 p-3 rounded-xl cursor-pointer transition flex justify-between items-center group">
+            <div>
+              <div class="text-[11px] text-slate-400">${item.expression}</div>
+              <div class="text-sm font-bold text-slate-200 mt-0.5">${item.result}</div>
+            </div>
+            <i class="fa-solid fa-arrow-turn-down text-xs text-indigo-400 opacity-0 group-hover:opacity-100 transition rotate-90"></i>
+          </div>
+        `;
+      });
+      historyList.innerHTML = html;
+    }
+
+    function useHistoryItem(val) {
+      currentInput = val;
+      toggleHistory();
+      updateDisplay();
+    }
+
+    function clearHistory() {
+      history = [];
+      renderHistory();
+    }
+
+    function toggleHistory() {
+      isHistoryShown = !isHistoryShown;
+      const mainView = document.getElementById('calculator-main-view');
+      const historyView = document.getElementById('calculator-history-view');
+
+      if (isHistoryShown) {
+        mainView.classList.add('hidden');
+        historyView.classList.remove('hidden');
+        historyToggleBtn.innerHTML = `<i class="fa-solid fa-calculator"></i> Calc`;
+        historyToggleBtn.classList.add('bg-indigo-600/30', 'border-indigo-500/50', 'text-indigo-300');
+      } else {
+        historyView.classList.add('hidden');
+        mainView.classList.remove('hidden');
+        historyToggleBtn.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> History`;
+        historyToggleBtn.classList.remove('bg-indigo-600/30', 'border-indigo-500/50', 'text-indigo-300');
+      }
+    }
+    window.addEventListener('keydown', (e) => {
+      if (isHistoryShown) return; 
+
+      if ((e.key >= '0' && e.key <= '9')) {
+        appendNumber(e.key);
+      } else if (e.key === '.') {
+        appendDecimal();
+      } else if (e.key === '+') {
+        appendOperator('+');
+      } else if (e.key === '-') {
+        appendOperator('-');
+      } else if (e.key === '*') {
+        appendOperator('*');
+      } else if (e.key === '/') {
+        e.preventDefault(); 
+        appendOperator('/');
+      } else if (e.key === 'Enter' || e.key === '=') {
+        compute();
+      } else if (e.key === 'Backspace') {
+        deleteDigit();
+      } else if (e.key === 'Escape') {
+        clearAll();
+      } else if (e.key === '%') {
+        appendPercentage();
+      }
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
